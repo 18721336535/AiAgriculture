@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiAgriculture.manage.mapper.AgrPlantingMapper">
+    
+    <resultMap type="AgrPlanting" id="AgrPlantingResult">
+        <result property="id"    column="id"    />
+        <result property="plantingCode"    column="planting_code"    />
+        <result property="varietyCode"    column="variety_code"    />
+        <result property="varietyName"    column="variety_name"    />
+        <result property="plotCode"    column="plot_code"    />
+        <result property="plotName"    column="plot_name"    />
+        <result property="plotArea"    column="plot_area"    />
+        <result property="groupCode"    column="group_code"    />
+        <result property="managerCode"    column="manager_code"    />
+        <result property="currentStatus"    column="current_status"    />
+        <result property="productionAmount"    column="production_amount"    />
+        <result property="remark"    column="remark"    />
+        <result property="createdAt"    column="created_at"    />
+        <result property="createdBy"    column="created_by"    />
+        <result property="updatedAt"    column="updated_at"    />
+        <result property="updatedBy"    column="updated_by"    />
+    </resultMap>
+
+    <sql id="selectAgrPlantingVo">
+        select id, planting_code, variety_code, variety_name, plot_code, plot_name, plot_area, group_code, manager_code, current_status, production_amount, remark, created_at, created_by, updated_at, updated_by from agr_planting
+    </sql>
+
+    <select id="selectAgrPlantingList" parameterType="AgrPlanting" resultMap="AgrPlantingResult">
+        <include refid="selectAgrPlantingVo"/>
+        <where>  
+            <if test="plantingCode != null  and plantingCode != ''"> and planting_code = #{plantingCode}</if>
+            <if test="varietyCode != null  and varietyCode != ''"> and variety_code = #{varietyCode}</if>
+            <if test="varietyName != null  and varietyName != ''"> and variety_name like concat('%', #{varietyName}, '%')</if>
+            <if test="plotCode != null  and plotCode != ''"> and plot_code = #{plotCode}</if>
+            <if test="plotName != null  and plotName != ''"> and plot_name like concat('%', #{plotName}, '%')</if>
+            <if test="groupCode != null  and groupCode != ''"> and group_code = #{groupCode}</if>
+            <if test="managerCode != null  and managerCode != ''"> and manager_code = #{managerCode}</if>
+        </where>
+    </select>
+    
+    <select id="selectAgrPlantingById" parameterType="Long" resultMap="AgrPlantingResult">
+        <include refid="selectAgrPlantingVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertAgrPlanting" parameterType="AgrPlanting" useGeneratedKeys="true" keyProperty="id">
+        insert into agr_planting
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="plantingCode != null">planting_code,</if>
+            <if test="varietyCode != null">variety_code,</if>
+            <if test="varietyName != null">variety_name,</if>
+            <if test="plotCode != null">plot_code,</if>
+            <if test="plotName != null">plot_name,</if>
+            <if test="plotArea != null">plot_area,</if>
+            <if test="groupCode != null">group_code,</if>
+            <if test="managerCode != null">manager_code,</if>
+            <if test="currentStatus != null">current_status,</if>
+            <if test="productionAmount != null">production_amount,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="createdBy != null">created_by,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="updatedBy != null">updated_by,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="plantingCode != null">#{plantingCode},</if>
+            <if test="varietyCode != null">#{varietyCode},</if>
+            <if test="varietyName != null">#{varietyName},</if>
+            <if test="plotCode != null">#{plotCode},</if>
+            <if test="plotName != null">#{plotName},</if>
+            <if test="plotArea != null">#{plotArea},</if>
+            <if test="groupCode != null">#{groupCode},</if>
+            <if test="managerCode != null">#{managerCode},</if>
+            <if test="currentStatus != null">#{currentStatus},</if>
+            <if test="productionAmount != null">#{productionAmount},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="createdBy != null">#{createdBy},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="updatedBy != null">#{updatedBy},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAgrPlanting" parameterType="AgrPlanting">
+        update agr_planting
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="plantingCode != null">planting_code = #{plantingCode},</if>
+            <if test="varietyCode != null">variety_code = #{varietyCode},</if>
+            <if test="varietyName != null">variety_name = #{varietyName},</if>
+            <if test="plotCode != null">plot_code = #{plotCode},</if>
+            <if test="plotName != null">plot_name = #{plotName},</if>
+            <if test="plotArea != null">plot_area = #{plotArea},</if>
+            <if test="groupCode != null">group_code = #{groupCode},</if>
+            <if test="managerCode != null">manager_code = #{managerCode},</if>
+            <if test="currentStatus != null">current_status = #{currentStatus},</if>
+            <if test="productionAmount != null">production_amount = #{productionAmount},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="createdBy != null">created_by = #{createdBy},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="updatedBy != null">updated_by = #{updatedBy},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAgrPlantingById" parameterType="Long">
+        delete from agr_planting where id = #{id}
+    </delete>
+
+    <delete id="deleteAgrPlantingByIds" parameterType="String">
+        delete from agr_planting where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiAgriculture.manage.mapper.AgrEquipmentGroupMapper">
+    
+    <resultMap type="AgrEquipmentGroup" id="AgrEquipmentGroupResult">
+        <result property="id"    column="id"    />
+        <result property="groupCode"    column="group_code"    />
+        <result property="groupName"    column="group_name"    />
+        <result property="equipmentCode"    column="equipment_code"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <resultMap id="AgrEquipmentGroupAgrEquipmentManagementResult" type="AgrEquipmentGroup" extends="AgrEquipmentGroupResult">
+        <collection property="agrEquipmentManagementList" notNullColumn="sub_id" javaType="java.util.List" resultMap="AgrEquipmentManagementResult" />
+    </resultMap>
+
+    <resultMap type="AgrEquipmentManagement" id="AgrEquipmentManagementResult">
+        <result property="id"    column="sub_id"    />
+        <result property="equipmentCode"    column="sub_equipment_code"    />
+        <result property="equipmentName"    column="sub_equipment_name"    />
+        <result property="equipmentModel"    column="sub_equipment_model"    />
+        <result property="equipmentPurpose"    column="sub_equipment_purpose"    />
+        <result property="equipmentPrice"    column="sub_equipment_price"    />
+        <result property="equipmentCompany"    column="sub_equipment_company"    />
+        <result property="equipmentStatus"    column="sub_equipment_status"    />
+        <result property="remark"    column="sub_remark"    />
+        <result property="createdAt"    column="sub_created_at"    />
+        <result property="createdBy"    column="sub_created_by"    />
+        <result property="updatedAt"    column="sub_updated_at"    />
+        <result property="updatedBy"    column="sub_updated_by"    />
+    </resultMap>
+
+    <sql id="selectAgrEquipmentGroupVo">
+        select id, group_code, group_name, equipment_code, remark from agr_equipment_group
+    </sql>
+
+    <select id="selectAgrEquipmentGroupList" parameterType="AgrEquipmentGroup" resultMap="AgrEquipmentGroupResult">
+        <include refid="selectAgrEquipmentGroupVo"/>
+        <where>  
+            <if test="groupCode != null  and groupCode != ''"> and group_code = #{groupCode}</if>
+            <if test="groupName != null  and groupName != ''"> and group_name like concat('%', #{groupName}, '%')</if>
+            <if test="equipmentCode != null  and equipmentCode != ''"> and equipment_code = #{equipmentCode}</if>
+        </where>
+    </select>
+    
+    <select id="selectAgrEquipmentGroupById" parameterType="Long" resultMap="AgrEquipmentGroupAgrEquipmentManagementResult">
+        select a.id, a.group_code, a.group_name, a.equipment_code, a.remark,
+ b.id as sub_id, b.equipment_code as sub_equipment_code, b.equipment_name as sub_equipment_name, b.equipment_model as sub_equipment_model, b.equipment_purpose as sub_equipment_purpose, b.equipment_price as sub_equipment_price, b.equipment_company as sub_equipment_company, b.equipment_status as sub_equipment_status, b.remark as sub_remark, b.created_at as sub_created_at, b.created_by as sub_created_by, b.updated_at as sub_updated_at, b.updated_by as sub_updated_by
+        from agr_equipment_group a
+        left join agr_equipment_management b on b.equipment_code = a.id
+        where a.id = #{id}
+    </select>
+        
+    <insert id="insertAgrEquipmentGroup" parameterType="AgrEquipmentGroup" useGeneratedKeys="true" keyProperty="id">
+        insert into agr_equipment_group
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="groupCode != null">group_code,</if>
+            <if test="groupName != null">group_name,</if>
+            <if test="equipmentCode != null">equipment_code,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="groupCode != null">#{groupCode},</if>
+            <if test="groupName != null">#{groupName},</if>
+            <if test="equipmentCode != null">#{equipmentCode},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAgrEquipmentGroup" parameterType="AgrEquipmentGroup">
+        update agr_equipment_group
+        <trim prefix="SET" suffixOverrides=",">
+<!--            <if test="groupCode != null">group_code = #{groupCode},</if>-->
+<!--            <if test="groupName != null">group_name = #{groupName},</if>-->
+            <if test="equipmentCode != null">equipment_code = #{equipmentCode},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAgrEquipmentGroupById" parameterType="Long">
+        delete from agr_equipment_group where id = #{id}
+    </delete>
+
+    <delete id="deleteAgrEquipmentGroupByIds" parameterType="String">
+        delete from agr_equipment_group where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <delete id="deleteAgrEquipmentManagementByEquipmentCodes" parameterType="String">
+        delete from agr_equipment_management where equipment_code in 
+        <foreach item="equipmentCode" collection="array" open="(" separator="," close=")">
+            #{equipmentCode}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAgrEquipmentManagementByEquipmentCode" parameterType="String">
+        delete from agr_equipment_management where equipment_code = #{equipmentCode}
+    </delete>
+
+<!--    <insert id="batchAgrEquipmentManagement">-->
+<!--        insert into agr_equipment_management(equipment_code, equipment_name, equipment_model, equipment_purpose, equipment_price, equipment_company, equipment_status, remark, created_at, created_by, updated_at, updated_by) values-->
+<!--        <foreach item="item" index="index" collection="list" separator=",">-->
+<!--            ( #{item.id}, #{item.equipmentCode}, #{item.equipmentName}, #{item.equipmentModel}, #{item.equipmentPurpose}, #{item.equipmentPrice}, #{item.equipmentCompany}, #{item.equipmentStatus}, #{item.remark}, #{item.createdAt}, #{item.createdBy}, #{item.updatedAt}, #{item.updatedBy})-->
+<!--        </foreach>-->
+<!--    </insert>-->
+    <insert id="batchAgrEquipmentManagement">
+        insert into agr_equipment_group(group_code, group_name, equipment_code, remark)
+        <foreach item="item" index="index" collection="list" separator=",">
+            values (#{item.groupCode}, #{item.groupName}, #{item.equipmentCode}, #{item.remark})
+        </foreach>
+    </insert>
+</mapper>

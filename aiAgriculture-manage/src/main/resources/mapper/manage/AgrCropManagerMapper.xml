@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiAgriculture.manage.mapper.AgrCropManagerMapper">
+    
+    <resultMap type="AgrCropManager" id="AgrCropManagerResult">
+        <result property="id"    column="id"    />
+        <result property="managerCode"    column="manager_code"    />
+        <result property="managerName"    column="manager_name"    />
+        <result property="jobType"    column="job_type"    />
+        <result property="email"    column="email"    />
+        <result property="contactInfo"    column="contact_info"    />
+        <result property="phoneNumber"    column="phone_number"    />
+        <result property="remark"    column="remark"    />
+        <result property="createdAt"    column="created_at"    />
+        <result property="createdBy"    column="created_by"    />
+        <result property="updatedAt"    column="updated_at"    />
+        <result property="updatedBy"    column="updated_by"    />
+    </resultMap>
+
+    <sql id="selectAgrCropManagerVo">
+        select id, manager_code, manager_name, job_type, email, contact_info, phone_number, remark, created_at, created_by, updated_at, updated_by from agr_crop_manager
+    </sql>
+
+    <select id="selectAgrCropManagerList" parameterType="AgrCropManager" resultMap="AgrCropManagerResult">
+        <include refid="selectAgrCropManagerVo"/>
+        <where>  
+            <if test="managerCode != null  and managerCode != ''"> and manager_code = #{managerCode}</if>
+            <if test="managerName != null  and managerName != ''"> and manager_name like concat('%', #{managerName}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectAgrCropManagerById" parameterType="Long" resultMap="AgrCropManagerResult">
+        <include refid="selectAgrCropManagerVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertAgrCropManager" parameterType="AgrCropManager" useGeneratedKeys="true" keyProperty="id">
+        insert into agr_crop_manager
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="managerCode != null">manager_code,</if>
+            <if test="managerName != null">manager_name,</if>
+            <if test="jobType != null">job_type,</if>
+            <if test="email != null">email,</if>
+            <if test="contactInfo != null">contact_info,</if>
+            <if test="phoneNumber != null">phone_number,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="createdBy != null">created_by,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="updatedBy != null">updated_by,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="managerCode != null">#{managerCode},</if>
+            <if test="managerName != null">#{managerName},</if>
+            <if test="jobType != null">#{jobType},</if>
+            <if test="email != null">#{email},</if>
+            <if test="contactInfo != null">#{contactInfo},</if>
+            <if test="phoneNumber != null">#{phoneNumber},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="createdBy != null">#{createdBy},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="updatedBy != null">#{updatedBy},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAgrCropManager" parameterType="AgrCropManager">
+        update agr_crop_manager
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="managerCode != null">manager_code = #{managerCode},</if>
+            <if test="managerName != null">manager_name = #{managerName},</if>
+            <if test="jobType != null">job_type = #{jobType},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="contactInfo != null">contact_info = #{contactInfo},</if>
+            <if test="phoneNumber != null">phone_number = #{phoneNumber},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="createdBy != null">created_by = #{createdBy},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="updatedBy != null">updated_by = #{updatedBy},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAgrCropManagerById" parameterType="Long">
+        delete from agr_crop_manager where id = #{id}
+    </delete>
+
+    <delete id="deleteAgrCropManagerByIds" parameterType="String">
+        delete from agr_crop_manager where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
