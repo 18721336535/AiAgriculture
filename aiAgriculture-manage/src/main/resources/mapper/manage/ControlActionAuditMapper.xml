@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiAgriculture.manage.mapper.ControlActionAuditMapper">
+    
+    <resultMap type="ControlActionAudit" id="ControlActionAuditResult">
+        <result property="id"    column="id"    />
+        <result property="actionName"    column="action_name"    />
+        <result property="actionTime"    column="action_time"    />
+        <result property="operator"    column="operator"    />
+    </resultMap>
+
+    <sql id="selectControlActionAuditVo">
+        select id, action_name, action_time, operator from control_action_audit
+    </sql>
+
+    <select id="selectControlActionAuditList" parameterType="ControlActionAudit" resultMap="ControlActionAuditResult">
+        <include refid="selectControlActionAuditVo"/>
+        <where>  
+            <if test="actionName != null  and actionName != ''"> and action_name like concat('%', #{actionName}, '%')</if>
+            <if test="operator != null  and operator != ''"> and operator = #{operator}</if>
+        </where>
+    </select>
+    
+    <select id="selectControlActionAuditById" parameterType="Long" resultMap="ControlActionAuditResult">
+        <include refid="selectControlActionAuditVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertControlActionAudit" parameterType="ControlActionAudit" useGeneratedKeys="true" keyProperty="id">
+        insert into control_action_audit
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="actionName != null">action_name,</if>
+            <if test="actionTime != null">action_time,</if>
+            <if test="operator != null">operator,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="actionName != null">#{actionName},</if>
+            <if test="actionTime != null">#{actionTime},</if>
+            <if test="operator != null">#{operator},</if>
+         </trim>
+    </insert>
+
+    <update id="updateControlActionAudit" parameterType="ControlActionAudit">
+        update control_action_audit
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="actionName != null">action_name = #{actionName},</if>
+            <if test="actionTime != null">action_time = #{actionTime},</if>
+            <if test="operator != null">operator = #{operator},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteControlActionAuditById" parameterType="Long">
+        delete from control_action_audit where id = #{id}
+    </delete>
+
+    <delete id="deleteControlActionAuditByIds" parameterType="String">
+        delete from control_action_audit where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

@@ -836,3 +836,29 @@ VALUES
 ('P001', '2023-08-19', '2023-08-19 13:00:00', '2023-08-19 15:00:00', 250.0, '2023-08-19'),
 ('P001', '2023-08-20', '2023-08-20 14:00:00', '2023-08-20 16:00:00', 300.0, '2023-08-20'),
 ('P001', '2023-08-21', '2023-08-21 15:00:00', '2023-08-21 17:00:00', 350.0, '2023-08-21');
+
+
+-- 删除已存在的ControlActionAudit表
+DROP TABLE IF EXISTS control_action_audit;
+
+-- 创建ControlActionAudit表
+CREATE TABLE control_action_audit (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '控制操作ID',
+    action_name VARCHAR(50) COMMENT '操作行为',
+    action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间，默认当前时间',
+    operator VARCHAR(50) DEFAULT 'system' COMMENT '操作人，默认为system'
+) COMMENT='控制操作审计表';
+
+-- 插入测试数据
+INSERT INTO control_action_audit (action_name, action_time, operator) VALUES
+('打开洒水阀门', '2023-10-01 10:00:00', 'user1'),
+('关闭喷水阀门', '2023-10-01 10:15:00', 'user2'),
+('打开滴灌施肥', '2023-10-01 11:00:00', 'user3'),
+('关闭滴灌', '2023-10-01 11:30:00', 'user4'),
+('打开天窗', '2023-10-01 12:00:00', 'user5'),
+('关闭天窗', '2023-10-01 12:30:00', 'user6'),
+('打开洒水阀门', '2023-10-02 09:00:00', 'user1'),
+('关闭喷水阀门', '2023-10-02 09:15:00', 'user2'),
+('打开滴灌施肥', '2023-10-02 10:00:00', 'user3'),
+('关闭滴灌', '2023-10-02 10:30:00', 'user4');
+
