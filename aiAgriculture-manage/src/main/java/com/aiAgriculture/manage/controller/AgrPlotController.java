@@ -25,7 +25,7 @@ import com.aiAgriculture.common.core.page.TableDataInfo;
  * 地块管理Controller
  * 
  * @author aiagr
- * @date 2024-11-09
+ * @date 2024-12-09
  */
 @RestController
 @RequestMapping("/manage/plot")

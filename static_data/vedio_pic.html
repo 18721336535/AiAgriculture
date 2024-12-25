@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>摄像头图片抓取</title>
+</head>
+<body>
+ 
+<img id="camera-image" width="340" height="380" />
+ <video id="myVideo" autoplay></video>
+<br/><br/><br/><br/>
+
+<input type="file" id="fileInput" />
+<button id="uploadButton">Upload</button>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+ 
+<script>
+  
+const filename = 'frame.jpg'; // 想要的文件名
+const mimeType = 'image/jpeg'; // 图片的MIME类型
+
+ const video = document.querySelector('video');
+        // 注意：navigator.getUserMedia语法已废弃，此处使用最新语法：navigator.mediaDevices.getUserMedia
+        navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+            .then(stream => {video.srcObject = stream; pic = stream;})
+            .catch(err => console.log(err));
+  const formData = new FormData();
+  document.getElementById('uploadButton').addEventListener('click', function () {
+  console.log('pic capt:',pic);
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0]; // 获取用户选择的文件
+    if (!file) { console.error('No file selected.'); return;}
+    formData.append('file', file); // 将文件添加到FormData
+	formData.append('jsonParam', JSON.stringify({data:"addy"})); // 将JSON参数转换为字符串并添加
+    axios.post('http://localhost:8080/manage/iot/machine/upload/image', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+    .then(response => {
+        console.log(response.data); // 处理响应数据
+    })
+    .catch(error => {
+        console.error(error); // 处理错误
+    });
+});
+  
+ // 每隔一定时间抓取一次图片
+ setInterval(function() {
+	const video = document.getElementById('myVideo'); // 使用video标签的id获取Video元素
+	const canvas = document.createElement('canvas'); // 创建Canvas元素
+	const ctx = canvas.getContext('2d'); // 获取绘图上下文对象
+ 
+	// 设置Canvas的宽度和高度与视频一致
+	canvas.width = video.videoWidth;
+	canvas.height = video.videoHeight;
+ 
+	// 在Canvas上绘制当前视频帧
+	ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+ 
+	// 将Canvas转换为图片URL
+	const frameImageUrl = canvas.toDataURL();
+ 
+	// 输出图片URL
+	console.log(frameImageUrl);
+	
+	urlToFile(frameImageUrl, filename, mimeType)
+    .then(file => {
+		const formData = new FormData();
+		formData.append('file', file); // 将文件添加到FormData
+		formData.append('jsonParam', JSON.stringify({data:"new data"})); // 将JSON参数转换为字符串并添加
+		axios.post('http://localhost:8080/manage/iot/machine/upload/image', formData, {headers: { 'Content-Type': 'multipart/form-data'}})
+		  .then(response => { console.log(response.data); })
+		  .catch(error => { console.error(error); });
+	}).catch(error => console.error(error)); // 处理错误
+	
+ }, 10000); // 每10秒抓取一次
+ 
+
+
+
+function urlToFile(url, filename, mimeType) {
+  return (fetch(url)
+    .then(res => res.arrayBuffer())
+    .then(buffer => new Blob([buffer], { type: mimeType }))
+    .then(blob => new File([blob], filename, { type: mimeType }))
+  );
+}
+ 
+
+
+</script>
+ 
+</body>
+</html>

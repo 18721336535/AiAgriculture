@@ -11,7 +11,7 @@ import com.aiAgriculture.common.core.domain.BaseEntity;
  * 地块管理对象 agr_plot
  * 
  * @author aiagr
- * @date 2024-11-09
+ * @date 2024-12-09
  */
 public class AgrPlot extends BaseEntity
 {

@@ -7,7 +7,7 @@ import com.aiAgriculture.manage.domain.AgrPlot;
  * 地块管理Mapper接口
  * 
  * @author aiagr
- * @date 2024-11-09
+ * @date 2024-12-09
  */
 public interface AgrPlotMapper 
 {

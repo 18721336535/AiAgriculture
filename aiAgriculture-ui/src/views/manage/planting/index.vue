@@ -123,6 +123,7 @@
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['manage:planting:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['manage:planting:remove']">删除</el-button>
+          <el-button link type="primary" icon="Dashboard" @click="handleControl(scope.row)">控制</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -330,6 +331,12 @@ function handleExport() {
     ...queryParams.value
   }, `planting_${new Date().getTime()}.xlsx`)
 }
+
+/** 控制按钮操作 */
+function handleControl(row) {
+  
+}
+
 
 getList();
 </script>
