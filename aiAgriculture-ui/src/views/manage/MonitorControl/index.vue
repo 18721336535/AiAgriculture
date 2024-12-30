@@ -47,6 +47,7 @@
         <video id="remote-camera" controls autoplay>
           您的浏览器不支持 video 标签。
         </video>
+        
       </el-main>
 
       <!-- 第二部分2：控制按钮区域 -->
@@ -74,30 +75,24 @@
         </div>
       </el-aside>
     </div>
-    <!-- 第四部分：操作历史 -->
-    <div>
-      <div class="controlAudit">
-        <h4>设备当前状态</h4>
-        <el-table :data="operationHistory">
-          <el-table-column prop="id" label="ID"></el-table-column>
-          <el-table-column prop="equipmentName" label="设备名称"></el-table-column>
-          <el-table-column prop="equipmentStatus" label="设备状态"></el-table-column>
-          <el-table-column prop="operationTime" label="操作时间"></el-table-column>
-          <el-table-column prop="operator" label="操作人"></el-table-column>
-        </el-table>
-      </div>
-    </div>
+
+    <MonitorTabs />
+    <!-- 第四部分 -->
+    
   </div>
 </template>
 <script setup name="ControlPane" lang="ts">
   import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
+  import MonitorTabs from '@/views/manage/MonitorControl/monitorTabs/infoTabs.vue'
   import axios from 'axios';
   const fanMachineSwitchValue = ref(true);
   const fanMachine2SwitchValue = ref(true);
   const wateringSwitchValue = ref(true);
   const windowSwitchValue = ref(true);
   let intervalId = 0;
+  let intervalId2 = 0;
   let cmd = 0;
+  const backendPath = "http://localhost:8080";
 
   const sensorData = reactive({
     temperature: "46",
@@ -135,7 +130,7 @@
     // 页面加载完成后，启动定时器
     intervalId = setInterval(async () => {
       try {
-        const response = await axios.get('http://localhost:8080/manage/iot/machine/getTemperature');
+        const response = await axios.get( backendPath + '/manage/iot/machine/getTemperature' );
         temperature.value = response.data.data.temperature;
         humidity.value = response.data.data.humidity;
       } catch (error) {
@@ -144,19 +139,49 @@
     }, 3000); // 每隔3秒钟调用一次API
   });
 
+  // 每隔一定时间抓取一次图片
+  intervalId2 = setInterval(function() {
+    const video = document.getElementById('remote-camera'); // 使用video标签的id获取Video元素
+    const canvas = document.createElement('canvas'); // 创建Canvas元素
+    const ctx = canvas.getContext('2d'); // 获取绘图上下文对象
+  
+    // 设置Canvas的宽度和高度与视频一致
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  
+    // 在Canvas上绘制当前视频帧
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+    // 将Canvas转换为图片URL
+    const frameImageUrl = canvas.toDataURL();
+  
+    // 输出图片URL
+    console.log(frameImageUrl);
+    
+    urlToFile(frameImageUrl, filename, mimeType)
+      .then(file => {
+      const formData = new FormData();
+      formData.append('file', file); // 将文件添加到FormData
+      formData.append('jsonParam', JSON.stringify({data:"new data"})); // 将JSON参数转换为字符串并添加
+      axios.post( backendPath + '/manage/iot/machine/upload/image', formData, {headers: { 'Content-Type': 'multipart/form-data'}})
+        .then(response => { console.log(response.data); })
+        .catch(error => { console.error(error); });
+    }).catch(error => console.error(error)); // 处理错误
+	
+ }, 10000); // 每10秒抓取一次
+
 
   onUnmounted(() => {
     // 页面卸载前，清除定时器
-    if (intervalId) {
       clearInterval(intervalId);
-    }
+      clearInterval(intervalId2);
   });
 
   // 控制按钮的方法
   const handleSwitchChange = async (value) => {
     console.log('handleSwitchChange value:', value);
     cmd = (value == 1) ? "11001":"01001"
-    const response = await axios.get('http://localhost:8080/manage/iot/machine/' + cmd);
+    const response = await axios.get( backendPath + '/manage/iot/machine/' + cmd );
     console.log('风扇开关状态：', response.data);
     addOperationHistory('风机1', value == 1 ? '打开了' : '关闭了', 'Andy');
   };
@@ -195,6 +220,15 @@
     };
     operationHistory.value.unshift(newRecord);
   };
+
+
+  const urlTofile = (url, filename, mimeType) =>{
+    return (fetch(url)
+      .then(res => res.arrayBuffer())
+      .then(buffer => new Blob([buffer], { type: mimeType }))
+      .then(blob => new File([blob], filename, { type: mimeType }))
+    );
+}
 </script>
 <style scoped>
   /* 全局样式 */
@@ -260,16 +294,4 @@
     margin-left: 10px;
   }
 
-  /* 操作历史表格 */
-  .el-table {
-    width: 100%;
-    margin-top: 10px;
-  }
-
-  .controlAudit {
-    margin-top: 5px;
-    border: #e9eeee solid 1px;
-    padding: 10px;
-    width: 100%;
-  }
 </style>

@@ -2,9 +2,8 @@ package com.aiAgriculture.manage.controller;
 
 import com.aiAgriculture.common.core.controller.BaseController;
 import com.aiAgriculture.common.core.domain.AjaxResult;
+import com.aiAgriculture.manage.dto.FaceDetectResultDto;
 import com.aiAgriculture.manage.service.IotService;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,28 @@ public class MachineControlController extends BaseController {
         log.info("ui jsonParam : {}", jsonParam);
         File fle = new File(FILE_DIR + File.separator+"cur.jpg");
         file.transferTo(fle);
-        return success();
+        String pythonScriptPath = "D:\\workspace\\a_ruoyi-vue-projects\\ai_agriculture\\ruoyi3.8.7\\20241027224845\\AiAgriculture\\scripts\\faceDetect.py";
+        ProcessBuilder pb = new ProcessBuilder("python", pythonScriptPath, FILE_DIR + File.separator+"cur.jpg","other");
+        pb.redirectErrorStream(true);
+        String line;
+        String result = "N";
+        FaceDetectResultDto dto = new FaceDetectResultDto(jsonParam,result,"");
+        try {
+            Process p = pb.start();
+            // 读取Python脚本的输出
+            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            while ((line = in.readLine()) != null) {
+                if(line == "1") result = "Y";
+                log.info(line);
+            }
+            in.close();
+            // 等待Python脚本执行完成
+            p.waitFor();
+            dto.setFaceExist(result);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return success(dto);
     }
-
 }
+
