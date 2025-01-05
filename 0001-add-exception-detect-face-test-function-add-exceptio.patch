@@ -1,0 +1,371 @@
+From 9707edfedf800bd381f8448911008842a588c00b Mon Sep 17 00:00:00 2001
+From: 18721336535 <1186014040@qq.com>
+Date: Mon, 30 Dec 2024 08:13:50 +0800
+Subject: [PATCH] add exception detect face test function + add + exception
+ +pinia
+
+---
+ .../controller/MachineControlController.java  | 28 ++++++-
+ .../manage/dto/FaceDetectResultDto.java       | 37 +++++++++
+ .../src/views/manage/MonitorControl/index.vue | 80 ++++++++++++-------
+ .../monitorTabs/EqpmentsStatus.vue            | 35 ++++++++
+ .../monitorTabs/ExceptionGrid.vue             | 29 +++++++
+ .../MonitorControl/monitorTabs/infoTabs.vue   | 29 +++++++
+ 6 files changed, 205 insertions(+), 33 deletions(-)
+ create mode 100644 aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/dto/FaceDetectResultDto.java
+ create mode 100644 aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/EqpmentsStatus.vue
+ create mode 100644 aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/ExceptionGrid.vue
+ create mode 100644 aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/infoTabs.vue
+
+diff --git a/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/controller/MachineControlController.java b/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/controller/MachineControlController.java
+index 56f68cd..a6b2ef4 100644
+--- a/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/controller/MachineControlController.java
++++ b/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/controller/MachineControlController.java
+@@ -2,9 +2,8 @@ package com.aiAgriculture.manage.controller;
+ 
+ import com.aiAgriculture.common.core.controller.BaseController;
+ import com.aiAgriculture.common.core.domain.AjaxResult;
++import com.aiAgriculture.manage.dto.FaceDetectResultDto;
+ import com.aiAgriculture.manage.service.IotService;
+-import com.alibaba.fastjson2.JSON;
+-import com.alibaba.fastjson2.JSONObject;
+ import org.eclipse.paho.client.mqttv3.MqttException;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -59,7 +58,28 @@ public class MachineControlController extends BaseController {
+         log.info("ui jsonParam : {}", jsonParam);
+         File fle = new File(FILE_DIR + File.separator+"cur.jpg");
+         file.transferTo(fle);
+-        return success();
++        String pythonScriptPath = "D:\\workspace\\a_ruoyi-vue-projects\\ai_agriculture\\ruoyi3.8.7\\20241027224845\\AiAgriculture\\scripts\\faceDetect.py";
++        ProcessBuilder pb = new ProcessBuilder("python", pythonScriptPath, FILE_DIR + File.separator+"cur.jpg","other");
++        pb.redirectErrorStream(true);
++        String line;
++        String result = "N";
++        FaceDetectResultDto dto = new FaceDetectResultDto(jsonParam,result,"");
++        try {
++            Process p = pb.start();
++            // 读取Python脚本的输出
++            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
++            while ((line = in.readLine()) != null) {
++                if(line == "1") result = "Y";
++                log.info(line);
++            }
++            in.close();
++            // 等待Python脚本执行完成
++            p.waitFor();
++            dto.setFaceExist(result);
++        } catch (Exception e) {
++            log.error(e.getMessage());
++        }
++        return success(dto);
+     }
+-
+ }
++
+diff --git a/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/dto/FaceDetectResultDto.java b/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/dto/FaceDetectResultDto.java
+new file mode 100644
+index 0000000..eedca58
+--- /dev/null
++++ b/aiAgriculture-manage/src/main/java/com/aiAgriculture/manage/dto/FaceDetectResultDto.java
+@@ -0,0 +1,37 @@
++package com.aiAgriculture.manage.dto;
++
++public class FaceDetectResultDto {
++    private String potId;
++    private String faceExist;
++    private String comments;
++
++    public FaceDetectResultDto(String potId, String faceExist, String comments) {
++        this.potId = potId;
++        this.faceExist = faceExist;
++        this.comments = comments;
++    }
++
++    public String getPotId() {
++        return potId;
++    }
++
++    public void setPotId(String potId) {
++        this.potId = potId;
++    }
++
++    public String getFaceExist() {
++        return faceExist;
++    }
++
++    public void setFaceExist(String faceExist) {
++        this.faceExist = faceExist;
++    }
++
++    public String getComments() {
++        return comments;
++    }
++
++    public void setComments(String comments) {
++        this.comments = comments;
++    }
++}
+diff --git a/aiAgriculture-ui/src/views/manage/MonitorControl/index.vue b/aiAgriculture-ui/src/views/manage/MonitorControl/index.vue
+index 6b6c48a..07c8df0 100644
+--- a/aiAgriculture-ui/src/views/manage/MonitorControl/index.vue
++++ b/aiAgriculture-ui/src/views/manage/MonitorControl/index.vue
+@@ -47,6 +47,7 @@
+         <video id="remote-camera" controls autoplay>
+           您的浏览器不支持 video 标签。
+         </video>
++        
+       </el-main>
+ 
+       <!-- 第二部分2：控制按钮区域 -->
+@@ -74,30 +75,24 @@
+         </div>
+       </el-aside>
+     </div>
+-    <!-- 第四部分：操作历史 -->
+-    <div>
+-      <div class="controlAudit">
+-        <h4>设备当前状态</h4>
+-        <el-table :data="operationHistory">
+-          <el-table-column prop="id" label="ID"></el-table-column>
+-          <el-table-column prop="equipmentName" label="设备名称"></el-table-column>
+-          <el-table-column prop="equipmentStatus" label="设备状态"></el-table-column>
+-          <el-table-column prop="operationTime" label="操作时间"></el-table-column>
+-          <el-table-column prop="operator" label="操作人"></el-table-column>
+-        </el-table>
+-      </div>
+-    </div>
++
++    <MonitorTabs />
++    <!-- 第四部分 -->
++    
+   </div>
+ </template>
+ <script setup name="ControlPane" lang="ts">
+   import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
++  import MonitorTabs from '@/views/manage/MonitorControl/monitorTabs/infoTabs.vue'
+   import axios from 'axios';
+   const fanMachineSwitchValue = ref(true);
+   const fanMachine2SwitchValue = ref(true);
+   const wateringSwitchValue = ref(true);
+   const windowSwitchValue = ref(true);
+   let intervalId = 0;
++  let intervalId2 = 0;
+   let cmd = 0;
++  const backendPath = "http://localhost:8080";
+ 
+   const sensorData = reactive({
+     temperature: "46",
+@@ -135,7 +130,7 @@
+     // 页面加载完成后，启动定时器
+     intervalId = setInterval(async () => {
+       try {
+-        const response = await axios.get('http://localhost:8080/manage/iot/machine/getTemperature');
++        const response = await axios.get( backendPath + '/manage/iot/machine/getTemperature' );
+         temperature.value = response.data.data.temperature;
+         humidity.value = response.data.data.humidity;
+       } catch (error) {
+@@ -144,19 +139,49 @@
+     }, 3000); // 每隔3秒钟调用一次API
+   });
+ 
++  // 每隔一定时间抓取一次图片
++  intervalId2 = setInterval(function() {
++    const video = document.getElementById('remote-camera'); // 使用video标签的id获取Video元素
++    const canvas = document.createElement('canvas'); // 创建Canvas元素
++    const ctx = canvas.getContext('2d'); // 获取绘图上下文对象
++  
++    // 设置Canvas的宽度和高度与视频一致
++    canvas.width = video.videoWidth;
++    canvas.height = video.videoHeight;
++  
++    // 在Canvas上绘制当前视频帧
++    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
++  
++    // 将Canvas转换为图片URL
++    const frameImageUrl = canvas.toDataURL();
++  
++    // 输出图片URL
++    console.log(frameImageUrl);
++    
++    urlToFile(frameImageUrl, filename, mimeType)
++      .then(file => {
++      const formData = new FormData();
++      formData.append('file', file); // 将文件添加到FormData
++      formData.append('jsonParam', JSON.stringify({data:"new data"})); // 将JSON参数转换为字符串并添加
++      axios.post( backendPath + '/manage/iot/machine/upload/image', formData, {headers: { 'Content-Type': 'multipart/form-data'}})
++        .then(response => { console.log(response.data); })
++        .catch(error => { console.error(error); });
++    }).catch(error => console.error(error)); // 处理错误
++	
++ }, 10000); // 每10秒抓取一次
++
+ 
+   onUnmounted(() => {
+     // 页面卸载前，清除定时器
+-    if (intervalId) {
+       clearInterval(intervalId);
+-    }
++      clearInterval(intervalId2);
+   });
+ 
+   // 控制按钮的方法
+   const handleSwitchChange = async (value) => {
+     console.log('handleSwitchChange value:', value);
+     cmd = (value == 1) ? "11001":"01001"
+-    const response = await axios.get('http://localhost:8080/manage/iot/machine/' + cmd);
++    const response = await axios.get( backendPath + '/manage/iot/machine/' + cmd );
+     console.log('风扇开关状态：', response.data);
+     addOperationHistory('风机1', value == 1 ? '打开了' : '关闭了', 'Andy');
+   };
+@@ -195,6 +220,15 @@
+     };
+     operationHistory.value.unshift(newRecord);
+   };
++
++
++  const urlTofile = (url, filename, mimeType) =>{
++    return (fetch(url)
++      .then(res => res.arrayBuffer())
++      .then(buffer => new Blob([buffer], { type: mimeType }))
++      .then(blob => new File([blob], filename, { type: mimeType }))
++    );
++}
+ </script>
+ <style scoped>
+   /* 全局样式 */
+@@ -260,16 +294,4 @@
+     margin-left: 10px;
+   }
+ 
+-  /* 操作历史表格 */
+-  .el-table {
+-    width: 100%;
+-    margin-top: 10px;
+-  }
+-
+-  .controlAudit {
+-    margin-top: 5px;
+-    border: #e9eeee solid 1px;
+-    padding: 10px;
+-    width: 100%;
+-  }
+ </style>
+\ No newline at end of file
+diff --git a/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/EqpmentsStatus.vue b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/EqpmentsStatus.vue
+new file mode 100644
+index 0000000..99007a7
+--- /dev/null
++++ b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/EqpmentsStatus.vue
+@@ -0,0 +1,35 @@
++<template>
++<div>
++    <div class="controlAudit">
++      <h4>设备当前状态</h4>
++      <el-table :data="operationHistory">
++        <el-table-column prop="id" label="ID"></el-table-column>
++        <el-table-column prop="equipmentName" label="设备名称"></el-table-column>
++        <el-table-column prop="equipmentStatus" label="设备状态"></el-table-column>
++        <el-table-column prop="operationTime" label="操作时间"></el-table-column>
++        <el-table-column prop="operator" label="操作人"></el-table-column>
++      </el-table>
++    </div>
++</div>
++</template>
++
++<script setup name="ControlPane" lang="ts">
++     //import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
++</script>
++
++<style scoped>
++
++  /* 操作历史表格 */
++  .el-table {
++    width: 100%;
++    margin-top: 10px;
++  }
++
++  .controlAudit {
++    margin-top: 5px;
++    border: #e9eeee solid 1px;
++    padding: 10px;
++    width: 100%;
++  }
++
++</style>
+\ No newline at end of file
+diff --git a/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/ExceptionGrid.vue b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/ExceptionGrid.vue
+new file mode 100644
+index 0000000..f924575
+--- /dev/null
++++ b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/ExceptionGrid.vue
+@@ -0,0 +1,29 @@
++<template>
++    <el-table :data="tableData" style="width: 100%" height="50">
++      <el-table-column fixed prop="date" label="时间"  />
++      <el-table-column prop="typeName" label="类型"  />
++      <el-table-column prop="state" label="状态"  />
++    </el-table>
++</template>
++  
++  <script lang="ts" setup>
++
++    import { defineProps } from 'vue';
++    
++    const props = defineProps({
++      tableData: []
++    });
++    const tableData = [
++      {
++        date: new Date().toLocaleTimeString(),
++        typeName: '温度',
++        state: '温度过高',
++      },
++      {
++        date: new Date().toLocaleTimeString(),
++        typeName: '可疑目标',
++        state: '检测到人脸',
++      },
++    ]
++  </script>
++  
+\ No newline at end of file
+diff --git a/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/infoTabs.vue b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/infoTabs.vue
+new file mode 100644
+index 0000000..d5866d4
+--- /dev/null
++++ b/aiAgriculture-ui/src/views/manage/MonitorControl/monitorTabs/infoTabs.vue
+@@ -0,0 +1,29 @@
++<template>
++    <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
++      <el-tab-pane label="Exceptions" name="first"><Exceptions/></el-tab-pane>
++      <el-tab-pane label="Eqpments Status" name="second"><EqpmentsStatus/></el-tab-pane>
++      <el-tab-pane label="History" name="third">History</el-tab-pane>
++    </el-tabs>
++  </template>
++  <script lang="ts" setup>
++    import { ref } from 'vue'
++    import type { TabsPaneContext } from 'element-plus'
++
++    import Exceptions from '@/views/manage/MonitorControl/monitorTabs/ExceptionGrid.vue'
++    import EqpmentsStatus from '@/views/manage/MonitorControl/monitorTabs/EqpmentsStatus.vue'
++    
++    const activeName = ref('first')
++    
++    const handleClick = (tab: TabsPaneContext, event: Event) => {
++        console.log(tab, event)
++    }
++  </script>
++  
++  <style>
++  .demo-tabs > .el-tabs__content {
++    padding: 32px;
++    color: #6b778c;
++    font-size: 32px;
++    font-weight: 600;
++  }
++  </style>
+\ No newline at end of file
+-- 
+2.38.0.windows.1
+

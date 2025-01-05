@@ -1,7 +1,7 @@
 <template>
   <!-- 第一部分：标题行 -->
   <div style="border: #e9eeee solid 1px;border-radius: 1px;padding: 2px;width: 1300px;">
-    <el-header style="height: 50px;font-size: 15px;"> 大棚编号/位置:L001/JXGZ </el-header>
+    <el-header style="height: 50px;font-size: 15px;"> 种植编号:P0000001 </el-header>
     <div class="flex-container">
       <!-- 第二部分1：环境参数展示和视频展示 -->
       <el-aside style="border: #e9eeee solid 1px;border-radius: 1px; width: 15%;">
@@ -47,7 +47,10 @@
         <video id="remote-camera" controls autoplay>
           您的浏览器不支持 video 标签。
         </video>
-        
+        <div style="background-color: yellow;">
+          <span> {{inrudersAlertmsg}} </span>
+          <!-- <el-alert  title= {{inrudersAlertmsg}} type="error" effect="dark" /> -->
+        </div>
       </el-main>
 
       <!-- 第二部分2：控制按钮区域 -->
@@ -76,15 +79,16 @@
       </el-aside>
     </div>
 
-    <MonitorTabs />
+    <InfoTabs />
     <!-- 第四部分 -->
     
   </div>
 </template>
 <script setup name="ControlPane" lang="ts">
   import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
-  import MonitorTabs from '@/views/manage/MonitorControl/monitorTabs/infoTabs.vue'
+  import InfoTabs from '@/views/manage/MonitorControl/monitorTabs/InfoTabs.vue'
   import axios from 'axios';
+  import { useExceptionStore } from '@/store/modules/exception'
   const fanMachineSwitchValue = ref(true);
   const fanMachine2SwitchValue = ref(true);
   const wateringSwitchValue = ref(true);
@@ -93,6 +97,10 @@
   let intervalId2 = 0;
   let cmd = 0;
   const backendPath = "http://localhost:8080";
+
+  const filename = 'frame.jpg'; // 想要的文件名
+  const mimeType = 'image/jpeg'; // 图片的MIME类型
+
 
   const sensorData = reactive({
     temperature: "46",
@@ -103,7 +111,8 @@
     windSpeed: "10",
     pressure: "101.325",
     soilMoisture: 70,
-    ultravioletRays: "800"
+    ultravioletRays: "800",
+    existInruder: 0,
   });
   const {
     temperature,
@@ -114,10 +123,36 @@
     windSpeed,
     pressure,
     soilMoisture,
-    ultravioletRays
+    ultravioletRays,
+    existInruder,
   } = toRefs(sensorData);
 
+  const existInruders = ref('N')
+  const inrudersAlertmsg = ref('')
+
   const operationHistory = ref([]);
+
+  const exceptionStore = useExceptionStore();
+
+  const tableData = [
+      {
+        date: new Date().toLocaleTimeString(),
+        typeName: '温度',
+        state: '温度过高',
+      },
+      {
+        date: new Date().toLocaleTimeString(),
+        typeName: '可疑目标',
+        state: '检测到人脸',
+      },
+    ];
+  const urlTofiles = function urlTofile (url, filename, mimeType) {
+    return (fetch(url)
+      .then(res => res.arrayBuffer())
+      .then(buffer => new Blob([buffer], { type: mimeType }))
+      .then(blob => new File([blob], filename, { type: mimeType }))
+    );
+  };
 
   onMounted(() => {
 
@@ -133,6 +168,7 @@
         const response = await axios.get( backendPath + '/manage/iot/machine/getTemperature' );
         temperature.value = response.data.data.temperature;
         humidity.value = response.data.data.humidity;
+        exceptionStore.$patch({ temperature: {date:"2024-12-01",typeName:"温度", state:response.data.data.humidity}});
       } catch (error) {
         console.error(error);
       }
@@ -146,28 +182,38 @@
     const ctx = canvas.getContext('2d'); // 获取绘图上下文对象
   
     // 设置Canvas的宽度和高度与视频一致
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // canvas.width = "200px";
+    // canvas.height = "200px";
   
     // 在Canvas上绘制当前视频帧
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   
     // 将Canvas转换为图片URL
     const frameImageUrl = canvas.toDataURL();
-  
+
     // 输出图片URL
     console.log(frameImageUrl);
     
-    urlToFile(frameImageUrl, filename, mimeType)
-      .then(file => {
+    urlTofiles(frameImageUrl, filename, mimeType).then(file => {
       const formData = new FormData();
       formData.append('file', file); // 将文件添加到FormData
       formData.append('jsonParam', JSON.stringify({data:"new data"})); // 将JSON参数转换为字符串并添加
       axios.post( backendPath + '/manage/iot/machine/upload/image', formData, {headers: { 'Content-Type': 'multipart/form-data'}})
-        .then(response => { console.log(response.data); })
+        .then(response => { 
+          // useExceptionStore.$patch({ errorList: tableData});
+          if (response.data.data.faceExist == "Y") {
+            existInruders.value=response.data.data.faceExist;
+            inrudersAlertmsg.value = " 请注意，有入侵者进入园地！";
+            exceptionStore.$patch({ intruder: {date:"2024-12-01",typeName:"入侵异常",state:response.data.data.faceExist}});
+          };
+          if (response.data.data.faceExist == "N") {
+            existInruders.value=response.data.data.faceExist;
+            inrudersAlertmsg.value = "";
+          };
+          console.log(response.data); 
+        })
         .catch(error => { console.error(error); });
     }).catch(error => console.error(error)); // 处理错误
-	
  }, 10000); // 每10秒抓取一次
 
 
@@ -210,7 +256,7 @@
   };
 
   const addOperationHistory = (equipmentName, equipmentStatus, operator) => {
-    const newId = operationHistory.value.length + 1;
+    const newId = exceptionStore.operationHistory.length + 1;
     const newRecord = {
       id: newId,
       equipmentName: equipmentName,
@@ -218,17 +264,10 @@
       operationTime: new Date().toLocaleString(),
       operator: operator
     };
-    operationHistory.value.unshift(newRecord);
+    // operationHistory.value.unshift(newRecord);
+    exceptionStore.$patch({ operationHistory:[...exceptionStore.operationHistory, newRecord]});
   };
 
-
-  const urlTofile = (url, filename, mimeType) =>{
-    return (fetch(url)
-      .then(res => res.arrayBuffer())
-      .then(buffer => new Blob([buffer], { type: mimeType }))
-      .then(blob => new File([blob], filename, { type: mimeType }))
-    );
-}
 </script>
 <style scoped>
   /* 全局样式 */
@@ -239,6 +278,7 @@
     padding: 10px;
     border: #e9eeee solid 1px;
     border-radius: 1px;
+    height: 600px;
   }
 
   /* 标题行 */
@@ -272,7 +312,7 @@
   /* 视频展示 */
   #remote-camera {
     width: 100%;
-    /* height: 100%; */
+    height: 500px;
     object-fit: cover;
   }
 

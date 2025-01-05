@@ -14,7 +14,19 @@
 </template>
 
 <script setup name="ControlPane" lang="ts">
-     //import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
+     import { useExceptionStore } from '@/store/modules/exception'
+     import { storeToRefs } from 'pinia'
+     import { ref, reactive, onMounted, onUnmounted, toRefs } from 'vue';
+     const exceptionStore = useExceptionStore();
+     const {operationHistory} = storeToRefs(exceptionStore);
+    //  const newRecord = {
+    //   id: '001',
+    //   equipmentName: "风扇01",
+    //   equipmentStatus: "关闭",
+    //   operationTime: new Date().toLocaleString(),
+    //   operator: "Admin"
+    // };
+    operationHistory.value.unshift(exceptionStore.operationHistory);
 </script>
 
 <style scoped>

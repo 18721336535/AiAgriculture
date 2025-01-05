@@ -123,7 +123,7 @@
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['manage:planting:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['manage:planting:remove']">删除</el-button>
-          <el-button link type="primary" icon="Dashboard" @click="handleControl(scope.row)">控制</el-button>
+          <el-button link type="primary" icon="el-icon-check" @click="handleControl(scope.row)">控制</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -163,7 +163,7 @@
         <el-form-item label="管理员" prop="managerCode">
           <el-input v-model="form.managerCode" placeholder="请输入管理员" />
         </el-form-item>
-        <el-form-item label="产量kg" prop="productionAmount">
+        <el-form-item label="产量" prop="productionAmount">
           <el-input v-model="form.productionAmount" placeholder="请输入产量kg" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -185,7 +185,7 @@
 
 <script setup name="Planting">
 import { listPlanting, getPlanting, delPlanting, addPlanting, updatePlanting } from "@/api/manage/planting";
-
+const router = useRouter();
 const { proxy } = getCurrentInstance();
 
 const plantingList = ref([]);
@@ -334,7 +334,8 @@ function handleExport() {
 
 /** 控制按钮操作 */
 function handleControl(row) {
-  
+  // 带查询参数，结果是 /control/MonitorControl?plantId=L001
+  router.push({ path: '/control/MonitorControl', query: { plantId: 'P0000001' } })
 }
 
 

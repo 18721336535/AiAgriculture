@@ -5,9 +5,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * MQTT工具类操作
- *
- * @author
- * @since v1.1.0 2020-01-10
  */
 @Component
 public class MQTTConnect {
